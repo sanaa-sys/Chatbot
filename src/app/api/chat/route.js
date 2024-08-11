@@ -15,7 +15,7 @@ Your goal is to assist users in the most efficient and effective way possible, e
 export async function POST(req) {
     try {
         const openai = new OpenAI({
-            //apiKey: process.env.OPENAI_API_KEY,
+            apiKey: process.env.OPENAI_API_KEY,
         });
 
         const data = await req.json();
