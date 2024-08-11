@@ -1,68 +1,91 @@
 'use client';
-import { Box, Button, Stack, TextField, createTheme, ThemeProvider } from '@mui/material'
-import { useState, useRef, useEffect } from 'react'
-import GoogleSignIn from '../components/GoogleSignIn'; // Import the GoogleSignIn component
+import { Box, Button, Stack, TextField, createTheme, ThemeProvider } from '@mui/material';
+import { useState, useRef, useEffect } from 'react';
+import GoogleSignIn from '../components/GoogleSignIn';
 import { auth } from '../lib/firebase';
 
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#000000', // Black
+            main: '#000000',
         },
         secondary: {
-            main: '#ffffff', // White
+            main: '#ffffff',
         },
         background: {
-            default: '#000000', // Black background
-            paper: '#000000', // Black paper (Box)
+            default: '#000000',
+            paper: '#000000',
         },
         text: {
-            primary: '#ffffff', // White text
+            primary: '#ffffff',
         },
     },
-})
+});
+
+const MessageBubble = ({ role, content }) => (
+    <Box
+        display="flex"
+        justifyContent={role === 'assistant' ? 'flex-start' : 'flex-end'}
+    >
+        <Box
+            bgcolor={role === 'assistant' ? 'primary.main' : 'secondary.main'}
+            color={role === 'assistant' ? 'secondary.main' : 'primary.main'}
+            borderRadius={16}
+            p={3}
+            pr={6}
+            sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} // Ensures text wraps correctly
+        >
+            {content}
+        </Box>
+    </Box>
+);
+
+const formatMessageContent = (text) => {
+    return text.replace(/([.!?])\s*(?=[A-Z])/g, "$1\n\n"); // Add line breaks after sentences
+};
 
 export default function Home() {
-    const [user, setUser] = useState(null); // State to track the authenticated user
+    const [user, setUser] = useState(null);
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
             content: "Hi! I'm the Chatbot Champs assistant. How can I help you today?",
         },
-    ])
-    const [message, setMessage] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
+    ]);
+    const [message, setMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Handle sign-in
     const handleSignIn = (user) => {
         setUser(user);
     };
 
-    // Handle sign-out
     const handleSignOut = () => {
         setUser(null);
     };
 
-    // Optional: Handle authentication persistence across sessions
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 setUser(user);
+            } else {
+                setUser(null);
             }
         });
-
         return () => unsubscribe();
     }, []);
 
     const sendMessage = async () => {
         if (!message.trim()) return;
 
-        setMessage('')
-        setMessages((messages) => [
-            ...messages,
-            { role: 'user', content: message },
+        const formattedMessage = formatMessageContent(message);
+
+        setMessage('');
+        setIsLoading(true);
+        setMessages((prevMessages) => [
+            ...prevMessages,
+            { role: 'user', content: formattedMessage },
             { role: 'assistant', content: '' },
-        ])
+        ]);
 
         try {
             const response = await fetch('/api/chat', {
@@ -70,54 +93,55 @@ export default function Home() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify([...messages, { role: 'user', content: message }]),
-            })
+                body: JSON.stringify([...messages, { role: 'user', content: formattedMessage }]),
+            });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok')
+                throw new Error('Network response was not ok');
             }
 
-            const reader = response.body.getReader()
-            const decoder = new TextDecoder()
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
 
             while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-                const text = decoder.decode(value, { stream: true })
-                setMessages((messages) => {
-                    let lastMessage = messages[messages.length - 1]
-                    let otherMessages = messages.slice(0, messages.length - 1)
+                const { done, value } = await reader.read();
+                if (done) break;
+                const text = decoder.decode(value, { stream: true });
+                setMessages((prevMessages) => {
+                    const lastMessage = prevMessages[prevMessages.length - 1];
                     return [
-                        ...otherMessages,
+                        ...prevMessages.slice(0, -1),
                         { ...lastMessage, content: lastMessage.content + text },
-                    ]
-                })
+                    ];
+                });
             }
         } catch (error) {
-            console.error('Error:', error)
-            setMessages((messages) => [
-                ...messages,
+            console.error('Error:', error);
+            setMessages((prevMessages) => [
+                ...prevMessages,
                 { role: 'assistant', content: "I'm sorry, but I encountered an error. Please try again later." },
-            ])
+            ]);
+        } finally {
+            setIsLoading(false);
         }
-    }
+    };
 
     const handleKeyPress = (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault()
-            sendMessage()
+            event.preventDefault();
+            sendMessage();
         }
-    }
+    };
 
-    const messagesEndRef = useRef(null)
+    const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     useEffect(() => {
-        scrollToBottom()
-    }, [messages])
+        scrollToBottom();
+    }, [messages]);
 
     return (
         <ThemeProvider theme={theme}>
@@ -134,7 +158,7 @@ export default function Home() {
                 {user ? (
                     <>
                         <Stack
-                            direction={'column'}
+                            direction="column"
                             width="800px"
                             height="700px"
                             border="1px solid white"
@@ -143,41 +167,17 @@ export default function Home() {
                             bgcolor="background.paper"
                         >
                             <Stack
-                                direction={'column'}
+                                direction="column"
                                 spacing={2}
                                 flexGrow={1}
                                 overflow="auto"
                                 maxHeight="100%"
                             >
-                                {messages.map((message, index) => (
-                                    <Box
-                                        key={index}
-                                        display="flex"
-                                        justifyContent={
-                                            message.role === 'assistant' ? 'flex-start' : 'flex-end'
-                                        }
-                                    >
-                                        <Box
-                                            bgcolor={
-                                                message.role === 'assistant'
-                                                    ? 'primary.main'
-                                                    : 'secondary.main'
-                                            }
-                                            color={
-                                                message.role === 'assistant'
-                                                    ? 'secondary.main'
-                                                    : 'primary.main'
-                                            }
-                                            borderRadius={16}
-                                            p={3}
-                                            pr={6}
-                                        >
-                                            {message.content}
-                                        </Box>
-                                    </Box>
+                                {messages.map((msg, index) => (
+                                    <MessageBubble key={index} role={msg.role} content={msg.content} />
                                 ))}
                             </Stack>
-                            <Stack direction={'row'} spacing={2}>
+                            <Stack direction="row" spacing={2}>
                                 <TextField
                                     label="Type Message Here"
                                     fullWidth
@@ -195,6 +195,7 @@ export default function Home() {
                                             color: 'white',
                                         },
                                     }}
+                                    autoFocus
                                 />
                                 <Button
                                     variant="contained"
@@ -219,5 +220,5 @@ export default function Home() {
                 )}
             </Box>
         </ThemeProvider>
-    )
+    );
 }
