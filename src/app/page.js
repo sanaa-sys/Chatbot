@@ -1,7 +1,7 @@
 'use client';
 import { Box, Button, Stack, TextField, createTheme, ThemeProvider } from '@mui/material'
 import { useState, useRef, useEffect } from 'react'
-import GoogleSignIn from '../component/GoogleSignIn'; // Import the GoogleSignIn component
+import GoogleSignIn from '../components/GoogleSignIn'; // Import the GoogleSignIn component
 import { auth } from '../lib/firebase';
 
 const theme = createTheme({
