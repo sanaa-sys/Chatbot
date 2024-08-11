@@ -1,7 +1,8 @@
-'use client'
-
+'use client';
 import { Box, Button, Stack, TextField, createTheme, ThemeProvider } from '@mui/material'
 import { useState, useRef, useEffect } from 'react'
+import GoogleSignIn from '../component/GoogleSignIn'; // Import the GoogleSignIn component
+import { auth } from '../lib/firebase';
 
 const theme = createTheme({
     palette: {
@@ -22,6 +23,7 @@ const theme = createTheme({
 })
 
 export default function Home() {
+    const [user, setUser] = useState(null); // State to track the authenticated user
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
@@ -31,8 +33,29 @@ export default function Home() {
     const [message, setMessage] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
+    // Handle sign-in
+    const handleSignIn = (user) => {
+        setUser(user);
+    };
+
+    // Handle sign-out
+    const handleSignOut = () => {
+        setUser(null);
+    };
+
+    // Optional: Handle authentication persistence across sessions
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setUser(user);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     const sendMessage = async () => {
-        if (!message.trim()) return;  // Don't send empty messages
+        if (!message.trim()) return;
 
         setMessage('')
         setMessages((messages) => [
@@ -108,79 +131,92 @@ export default function Home() {
                 bgcolor="background.default"
                 color="text.primary"
             >
-                <Stack
-                    direction={'column'}
-                    width="800px"
-                    height="700px"
-                    border="1px solid white"
-                    p={2}
-                    spacing={3}
-                    bgcolor="background.paper"
-                >
-                    <Stack
-                        direction={'column'}
-                        spacing={2}
-                        flexGrow={1}
-                        overflow="auto"
-                        maxHeight="100%"
-                    >
-                        {messages.map((message, index) => (
-                            <Box
-                                key={index}
-                                display="flex"
-                                justifyContent={
-                                    message.role === 'assistant' ? 'flex-start' : 'flex-end'
-                                }
+                {user ? (
+                    <>
+                        <Stack
+                            direction={'column'}
+                            width="800px"
+                            height="700px"
+                            border="1px solid white"
+                            p={2}
+                            spacing={3}
+                            bgcolor="background.paper"
+                        >
+                            <Stack
+                                direction={'column'}
+                                spacing={2}
+                                flexGrow={1}
+                                overflow="auto"
+                                maxHeight="100%"
                             >
-                                <Box
-                                    bgcolor={
-                                        message.role === 'assistant'
-                                            ? 'primary.main'
-                                            : 'secondary.main'
-                                    }
-                                    color={
-                                        message.role === 'assistant'
-                                            ? 'secondary.main'
-                                            : 'primary.main'
-                                    }
-                                    borderRadius={16}
-                                    p={3}
-                                    pr={6}
+                                {messages.map((message, index) => (
+                                    <Box
+                                        key={index}
+                                        display="flex"
+                                        justifyContent={
+                                            message.role === 'assistant' ? 'flex-start' : 'flex-end'
+                                        }
+                                    >
+                                        <Box
+                                            bgcolor={
+                                                message.role === 'assistant'
+                                                    ? 'primary.main'
+                                                    : 'secondary.main'
+                                            }
+                                            color={
+                                                message.role === 'assistant'
+                                                    ? 'secondary.main'
+                                                    : 'primary.main'
+                                            }
+                                            borderRadius={16}
+                                            p={3}
+                                            pr={6}
+                                        >
+                                            {message.content}
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Stack>
+                            <Stack direction={'row'} spacing={2}>
+                                <TextField
+                                    label="Type Message Here"
+                                    fullWidth
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    disabled={isLoading}
+                                    InputProps={{
+                                        style: {
+                                            color: 'white',
+                                        },
+                                    }}
+                                    InputLabelProps={{
+                                        style: {
+                                            color: 'white',
+                                        },
+                                    }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    onClick={sendMessage}
+                                    disabled={isLoading}
                                 >
-                                    {message.content}
-                                </Box>
-                            </Box>
-                        ))}
-                    </Stack>
-                    <Stack direction={'row'} spacing={2}>
-                        <TextField
-                            label="Type Message Here"
-                            fullWidth
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            disabled={isLoading}
-                            InputProps={{
-                                style: {
-                                    color: 'white',
-                                },
-                            }}
-                            InputLabelProps={{
-                                style: {
-                                    color: 'white',
-                                },
-                            }}
-                        />
+                                    {isLoading ? 'Sending...' : 'Send'}
+                                </Button>
+                                <div ref={messagesEndRef} />
+                            </Stack>
+                        </Stack>
                         <Button
                             variant="contained"
-                            onClick={sendMessage}
-                            disabled={isLoading}
+                            onClick={handleSignOut}
+                            sx={{ marginTop: 2 }}
                         >
-                            {isLoading ? 'Sending...' : 'Send'}
+                            Sign Out
                         </Button>
-                        <div ref={messagesEndRef} />
-                    </Stack>
-                </Stack>
+                    </>
+                ) : (
+                    <GoogleSignIn onSignIn={handleSignIn} onSignOut={handleSignOut} />
+                )}
             </Box>
         </ThemeProvider>
     )
