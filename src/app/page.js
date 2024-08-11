@@ -1,13 +1,31 @@
 'use client'
 
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Box, Button, Stack, TextField, createTheme, ThemeProvider } from '@mui/material'
 import { useState, useRef, useEffect } from 'react'
+
+const theme = createTheme({
+    palette: {
+        primary: {
+            main: '#000000', // Black
+        },
+        secondary: {
+            main: '#ffffff', // White
+        },
+        background: {
+            default: '#000000', // Black background
+            paper: '#000000', // Black paper (Box)
+        },
+        text: {
+            primary: '#ffffff', // White text
+        },
+    },
+})
 
 export default function Home() {
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
-            content: "Hi! I'm the Headstarter support assistant. How can I help you today?",
+            content: "Hi! I'm the Chatbot Champs assistant. How can I help you today?",
         },
     ])
     const [message, setMessage] = useState('')
@@ -79,71 +97,91 @@ export default function Home() {
     }, [messages])
 
     return (
-        <Box
-            width="100vw"
-            height="100vh"
-            display="flex"
-            flexDirection="column"
-            justifyContent="center"
-            alignItems="center"
-        >
-            <Stack
-                direction={'column'}
-                width="500px"
-                height="700px"
-                border="1px solid black"
-                p={2}
-                spacing={3}
+        <ThemeProvider theme={theme}>
+            <Box
+                width="100vw"
+                height="100vh"
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                bgcolor="background.default"
+                color="text.primary"
             >
                 <Stack
                     direction={'column'}
-                    spacing={2}
-                    flexGrow={1}
-                    overflow="auto"
-                    maxHeight="100%"
+                    width="800px"
+                    height="700px"
+                    border="1px solid white"
+                    p={2}
+                    spacing={3}
+                    bgcolor="background.paper"
                 >
-                    {messages.map((message, index) => (
-                        <Box
-                            key={index}
-                            display="flex"
-                            justifyContent={
-                                message.role === 'assistant' ? 'flex-start' : 'flex-end'
-                            }
-                        >
-                            <Box
-                                bgcolor={
-                                    message.role === 'assistant'
-                                        ? 'primary.main'
-                                        : 'secondary.main'
-                                }
-                                color="white"
-                                borderRadius={16}
-                                p={3}
-                            >
-                                {message.content}
-                            </Box>
-                        </Box>
-                    ))}
-                </Stack>
-                <Stack direction={'row'} spacing={2}>
-                    <TextField
-                        label="Message"
-                        fullWidth
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        disabled={isLoading}
-                    />
-                    <Button
-                        variant="contained"
-                        onClick={sendMessage}
-                        disabled={isLoading}
+                    <Stack
+                        direction={'column'}
+                        spacing={2}
+                        flexGrow={1}
+                        overflow="auto"
+                        maxHeight="100%"
                     >
-                        {isLoading ? 'Sending...' : 'Send'}
-                    </Button>
-                    <div ref={messagesEndRef} />
+                        {messages.map((message, index) => (
+                            <Box
+                                key={index}
+                                display="flex"
+                                justifyContent={
+                                    message.role === 'assistant' ? 'flex-start' : 'flex-end'
+                                }
+                            >
+                                <Box
+                                    bgcolor={
+                                        message.role === 'assistant'
+                                            ? 'primary.main'
+                                            : 'secondary.main'
+                                    }
+                                    color={
+                                        message.role === 'assistant'
+                                            ? 'secondary.main'
+                                            : 'primary.main'
+                                    }
+                                    borderRadius={16}
+                                    p={3}
+                                    pr={6}
+                                >
+                                    {message.content}
+                                </Box>
+                            </Box>
+                        ))}
+                    </Stack>
+                    <Stack direction={'row'} spacing={2}>
+                        <TextField
+                            label="Type Message Here"
+                            fullWidth
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            disabled={isLoading}
+                            InputProps={{
+                                style: {
+                                    color: 'white',
+                                },
+                            }}
+                            InputLabelProps={{
+                                style: {
+                                    color: 'white',
+                                },
+                            }}
+                        />
+                        <Button
+                            variant="contained"
+                            onClick={sendMessage}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Sending...' : 'Send'}
+                        </Button>
+                        <div ref={messagesEndRef} />
+                    </Stack>
                 </Stack>
-            </Stack>
-        </Box>
+            </Box>
+        </ThemeProvider>
     )
 }

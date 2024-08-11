@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+const Groq = require('groq-sdk'); // Import the Groq SDK
 
 const systemPrompt = `
 You are a highly skilled and knowledgeable assistant, focused on providing accurate and concise technical support.
@@ -14,24 +14,28 @@ Your goal is to assist users in the most efficient and effective way possible, e
 
 export async function POST(req) {
     try {
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        // Initialize the Groq client
+        const groq = new Groq();
 
         const data = await req.json();
 
-        const completion = await openai.chat.completions.create({
+        // Create a chat completion request using Groq
+        const chatCompletion = await groq.chat.completions.create({
             messages: [{ role: 'system', content: systemPrompt }, ...data],
-            model: 'gpt-3.5-turbo',
+            model: 'llama3-8b-8192', // Adjust to the specific model you want to use
+            temperature: 1,
+            max_tokens: 1024,
+            top_p: 1,
             stream: true,
+            stop: null,
         });
 
         const stream = new ReadableStream({
             async start(controller) {
                 const encoder = new TextEncoder();
                 try {
-                    for await (const chunk of completion) {
-                        const content = chunk.choices[0]?.delta?.content;
+                    for await (const chunk of chatCompletion) {
+                        const content = chunk.choices[0]?.delta?.content || '';
                         if (content) {
                             const text = encoder.encode(content);
                             controller.enqueue(text);
